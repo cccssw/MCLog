@@ -139,22 +139,22 @@ static const void *kMCLogIDEConsoleAreaKey;
 
 - (void)setConsoleArea:(MCLogIDEConsoleArea *)consoleArea
 {
-	objc_setAssociatedObject(self, &kMCLogIDEConsoleAreaKey, consoleArea, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, &kMCLogIDEConsoleAreaKey, consoleArea, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 - (MCLogIDEConsoleArea *)consoleArea
 {
-	return objc_getAssociatedObject(self, &kMCLogIDEConsoleAreaKey);
+    return objc_getAssociatedObject(self, &kMCLogIDEConsoleAreaKey);
 }
 
 - (void)setConsoleTextView:(NSTextView *)consoleTextView
 {
-	objc_setAssociatedObject(self, &kMCLogConsoleTextViewKey, consoleTextView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, &kMCLogConsoleTextViewKey, consoleTextView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 - (NSTextView *)consoleTextView
 {
-	return objc_getAssociatedObject(self, &kMCLogConsoleTextViewKey);
+    return objc_getAssociatedObject(self, &kMCLogConsoleTextViewKey);
 }
 
 @dynamic consoleArea;
@@ -200,16 +200,16 @@ static const void *LogLevelAssociateKey;
     if (![[item valueForKey:@"output"] boolValue] || [[item valueForKey:@"outputRequestedByUser"] boolValue]) {
         return;
     }
-
-	if (!logText) {
-		return;
-	}
+    
+    if (!logText) {
+        return;
+    }
     
     NSRange prefixRange = [logItemPrefixPattern() rangeOfFirstMatchInString:logText options:0 range:NSMakeRange(0, logText.length)];
     if (prefixRange.location != 0 || logText.length <= prefixRange.length) {
         return;
     }
-
+    
     static NSRegularExpression *ControlCharsPattern = nil;
     if (ControlCharsPattern == nil) {
         ControlCharsPattern = [NSRegularExpression regularExpressionWithPattern:LC_ESC@"\\[[\\d;]+m" options:0 error:&error];
@@ -299,7 +299,7 @@ static IMP OriginalClearTextIMP = nil;
 
 - (BOOL)_shouldAppendItem:(id)obj;
 {
-	NSSearchField *searchField = getSearchField(self);
+    NSSearchField *searchField = getSearchField(self);
     if (!searchField.consoleArea) {
         searchField.consoleArea = self;
     }
@@ -332,40 +332,40 @@ static IMP OriginalClearTextIMP = nil;
         return NO;
     }
     
-	if (!searchField) {
-		return YES;
-	}
-  
+    if (!searchField) {
+        return YES;
+    }
     
-	// store all console items.
+    
+    // store all console items.
     if (![originConsoleItems containsObjectForKey:@([obj timestamp])]) {
         [originConsoleItems addObject:obj forKey:@([obj timestamp])];
     }
-	[OriginConsoleItemsMap setObject:originConsoleItems forKey:hash(self)];
+    [OriginConsoleItemsMap setObject:originConsoleItems forKey:hash(self)];
     
     if (searchField.stringValue.length == 0) {
         return YES;
     }
-
+    
     // Remove prefix log pattern
-	NSString *content = [obj content];
+    NSString *content = [obj content];
     NSRange range = NSMakeRange(0, content.length);
-
+    
     NSRegularExpression *logRegex = logItemPrefixPattern();
     content = [logRegex stringByReplacingMatchesInString:content options:(NSRegularExpressionCaseInsensitive | NSRegularExpressionDotMatchesLineSeparators) range:range withTemplate:@""];
-
+    
     
     if (SearchPatternsDic == nil) {
         SearchPatternsDic = [NSMutableDictionary dictionary];
     }
-
+    
     // Test with user's regex pattern
     NSError *error;
     NSRegularExpression *regex = SearchPatternsDic[hash(self)];
     if (regex == nil || ![regex.pattern isEqualToString:searchField.stringValue]) {
         regex = [NSRegularExpression regularExpressionWithPattern:searchField.stringValue
-                                                  options:(NSRegularExpressionCaseInsensitive|NSRegularExpressionDotMatchesLineSeparators)
-                                                    error:&error];
+                                                          options:(NSRegularExpressionCaseInsensitive|NSRegularExpressionDotMatchesLineSeparators)
+                                                            error:&error];
         if (regex == nil) {
             // display all if with regex is error
             MCLogger(@"error:%@", error);
@@ -376,27 +376,30 @@ static IMP OriginalClearTextIMP = nil;
     
     range = NSMakeRange(0, content.length);
     NSArray *matches = [regex matchesInString:content options:0 range:range];
-	if ([matches count] > 0
+    if ([matches count] > 0
         || [[obj valueForKey:@"input"] boolValue]
         || [[obj valueForKey:@"prompt"] boolValue]
         || [[obj valueForKey:@"outputRequestedByUser"] boolValue]
         || [[obj valueForKey:@"adaptorType"] hasSuffix:@".Debugger"]) {
-		return YES;
-	}
-
-	return NO;
+        return YES;
+    }
+    
+    return NO;
 }
 
 - (void)_clearText
 {
-	OriginalClearTextIMP(self, _cmd);
-	[OriginConsoleItemsMap removeObjectForKey:hash(self)];
+    OriginalClearTextIMP(self, _cmd);
+    [OriginConsoleItemsMap removeObjectForKey:hash(self)];
 }
 @end
 
 ///////////////////////////////////////////////////////////////////////////////////
 #pragma mark - MCDVTTextStorage
-static IMP OriginalFixAttributesInRangeIMP      = nil;
+typedef void* (*arbitraryFunction)();
+static IMP OriginalFixAttributesInRangeIMP             = nil;
+static IMP OriginalSuperInvalidateAttributesInRangeIMP = nil;
+static IMP OriginalInvalidateAttributesInRangeIMP      = nil;
 
 static void *kLastAttributeKey;
 @interface MCDVTTextStorage : NSTextStorage
@@ -411,17 +414,44 @@ static void *kLastAttributeKey;
 
 @implementation MCDVTTextStorage
 
+- (void)superInvalidateAttributesInRange:(NSRange)range{
+    //    NSLog(@"---- start %s ---- NSRange[range.location:%ld,range.length:%ld]",__PRETTY_FUNCTION__,range.location,range.length);
+    //    __weak id _wself = [super self];
+    //    arbitraryFunction call = OriginalInvalidateAttributesInRangeIMP;
+    //    call(self,_cmd,range);
+    //    NSLog(@"---- end %s ----",__PRETTY_FUNCTION__);
+    OriginalInvalidateAttributesInRangeIMP(self,_cmd,range);
+    return;
+}
+- (void)invalidateAttributesInRange:(NSRange)range{
+    @try {
+        NSLog(@"---- start %s ---- NSRange[range.location:%ld,range.length:%ld]",__PRETTY_FUNCTION__,range.location,range.length);
+        //        OriginalInvalidateAttributesInRangeIMP(self,_cmd,range);
+        NSLog(@"---- end %s ----",__PRETTY_FUNCTION__);
+    }
+    @catch (NSException *exception) {
+        
+    }
+    @finally {
+        
+    }
+    
+}
 - (void)fixAttributesInRange:(NSRange)range
 {
-    OriginalFixAttributesInRangeIMP(self, _cmd, range);
-
+    NSLog(@"---- start %s ---- NSRange[range.location:%ld,range.length:%ld]",__PRETTY_FUNCTION__,range.location,range.length);
+    if (OriginalFixAttributesInRangeIMP!=nil) {
+        OriginalFixAttributesInRangeIMP(self, _cmd, range);
+    }
+    NSLog(@"---- process %s 1----",__PRETTY_FUNCTION__);
     __block NSRange lastRange = NSMakeRange(range.location, 0);
     NSMutableDictionary *attrs = [NSMutableDictionary dictionary];
     if (self.lastAttribute.count > 0) {
         [attrs setValuesForKeysWithDictionary:self.lastAttribute];
     }
-
+    NSLog(@"---- process %s 2----",__PRETTY_FUNCTION__);
     [escCharPattern() enumerateMatchesInString:self.string options:0 range:range usingBlock:^(NSTextCheckingResult *result, NSMatchingFlags flags, BOOL *stop) {
+        NSLog(@"---- process %s 3----",__PRETTY_FUNCTION__);
         if (attrs.count > 0) {
             NSRange attrRange = NSMakeRange(lastRange.location, result.range.location - lastRange.location);
             [self addAttributes:attrs range:attrRange];
@@ -433,7 +463,7 @@ static void *kLastAttributeKey;
             [self addAttributes:@{
                                   NSFontAttributeName: [NSFont systemFontOfSize:0.000001f],
                                   NSForegroundColorAttributeName: [NSColor clearColor]
-                                 }
+                                  }
                           range:result.range];
             lastRange = result.range;
             return;
@@ -446,6 +476,7 @@ static void *kLastAttributeKey;
                       range:result.range];
         lastRange = result.range;
     }];
+    NSLog(@"---- end %s ----",__PRETTY_FUNCTION__);
     self.lastAttribute = attrs;
 }
 
@@ -574,7 +605,7 @@ static dispatch_queue_t buffer_queue() {
     dispatch_once(&onceToken, ^{
         mclog_buffer_queue = dispatch_queue_create("io.michaelchen.mclog.buffer-queue", DISPATCH_QUEUE_SERIAL);
     });
-
+    
     return mclog_buffer_queue;
 }
 
@@ -603,9 +634,9 @@ static dispatch_queue_t buffer_queue() {
     NSDictionary *unprocessedOutputInfo = self.unprocessedOutputInfo;
     if (unprocessedOutputInfo) {
         [self setUnprocessedOutputInfo:nil];
-            originalOutputForStandardOutputIMP(self, _cmd, [unprocessedOutputInfo[@"content"] stringValue],
-                                               [unprocessedOutputInfo[@"isPrompt"] boolValue],
-                                               [unprocessedOutputInfo[@"isOutputRequestedByUser"] boolValue]);
+        originalOutputForStandardOutputIMP(self, _cmd, [unprocessedOutputInfo[@"content"] stringValue],
+                                           [unprocessedOutputInfo[@"isPrompt"] boolValue],
+                                           [unprocessedOutputInfo[@"isOutputRequestedByUser"] boolValue]);
     }
 }
 
@@ -617,10 +648,10 @@ static dispatch_queue_t buffer_queue() {
 - (void)outputForStandardOutput:(id)arg1 isPrompt:(BOOL)arg2 isOutputRequestedByUser:(BOOL)arg3
 {
     NSRegularExpression *logSeperatorPattern = logItemPrefixPattern();
-
+    
     NSString *unprocessedString = self.unprocessedOutputInfo[@"content"];
     [self setUnprocessedOutputInfo:nil];
-
+    
     NSString *buffer = arg1;
     if (unprocessedString.length > 0) {
         buffer = [unprocessedString stringByAppendingString:arg1];
@@ -639,11 +670,11 @@ static dispatch_queue_t buffer_queue() {
                 }
                 lastMatchingRange = result.range;
             }
-
+            
             if (lastMatchingRange.location + lastMatchingRange.length < [buffer length]) {
                 unprocessedString = [buffer substringFromIndex:lastMatchingRange.location];
             }
-
+            
         } else {
             dispatch_async(buffer_queue(), ^{
                 originalOutputForStandardOutputIMP(self, _cmd, buffer, arg2, arg3);
@@ -654,7 +685,7 @@ static dispatch_queue_t buffer_queue() {
             originalOutputForStandardOutputIMP(self, _cmd, arg1, arg2, arg3);
         });
     }
-
+    
     if (unprocessedString.length > 0) {
         [self setUnprocessedOutputInfo:@{@"content": unprocessedString,
                                          @"isPrompt": @(arg2),
@@ -663,7 +694,7 @@ static dispatch_queue_t buffer_queue() {
             [self MCOutputUnprocessedBuffer];
         });
     }
-
+    
 }
 
 @end
@@ -713,7 +744,7 @@ static dispatch_queue_t buffer_queue() {
 {
     self = [super init];
     if (self) {
-		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(activate:) name:@"IDEControlGroupDidChangeNotificationName" object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(activate:) name:@"IDEControlGroupDidChangeNotificationName" object:nil];
     }
     return self;
 }
@@ -844,23 +875,23 @@ static dispatch_queue_t buffer_queue() {
     if ([consoleTextView respondsToSelector:@selector(clearConsoleItems)]) {
         [consoleTextView performSelector:@selector(clearConsoleItems) withObject:nil];
     }
-
-	NSString *cachedKey = hash(consoleArea);
-	if (cachedKey) {
-		NSArray *sortedItems = [OriginConsoleItemsMap[hash(consoleArea)] orderedItems];
-
-		if ([consoleArea respondsToSelector:@selector(_appendItems:)]) {
-			[consoleArea performSelector:@selector(_appendItems:) withObject:sortedItems];
-		}
-
-		[SearchPatternsDic removeObjectForKey:hash(consoleArea)];
-	}
+    
+    NSString *cachedKey = hash(consoleArea);
+    if (cachedKey) {
+        NSArray *sortedItems = [OriginConsoleItemsMap[hash(consoleArea)] orderedItems];
+        
+        if ([consoleArea respondsToSelector:@selector(_appendItems:)]) {
+            [consoleArea performSelector:@selector(_appendItems:) withObject:sortedItems];
+        }
+        
+        [SearchPatternsDic removeObjectForKey:hash(consoleArea)];
+    }
 #pragma clang diagnostic pop
 }
 
 - (void)activate:(NSNotification *)notification
 {
-	[self addCustomViews];
+    [self addCustomViews];
 }
 
 @end
@@ -896,10 +927,29 @@ void hookDVTTextStorage()
 {
     Class DVTTextStorage = NSClassFromString(@"DVTTextStorage");
     
+    Class NSTextStorage = NSClassFromString(@"NSTextStorage");
+    
+    Method superInvalidateAttributesInRange = class_getInstanceMethod(NSTextStorage, @selector(invalidateAttributesInRange:));
+    OriginalSuperInvalidateAttributesInRangeIMP = method_getImplementation(superInvalidateAttributesInRange);
+    
+    IMP newSuperInvalidateAttributesInRangeIMP = class_getMethodImplementation([MCDVTTextStorage class], @selector(superInvalidateAttributesInRange:));
+    
+    //    method_setImplementation(superInvalidateAttributesInRange, newSuperInvalidateAttributesInRangeIMP);
+    
+    Method invalidateAttributesInRange = class_getInstanceMethod(DVTTextStorage, @selector(invalidateAttributesInRange:));
+    OriginalInvalidateAttributesInRangeIMP = method_getImplementation(invalidateAttributesInRange);
+    
+    IMP newInvalidateAttributesInRangeIMP = class_getMethodImplementation([MCDVTTextStorage class], @selector(invalidateAttributesInRange:));
+    method_setImplementation(invalidateAttributesInRange, newInvalidateAttributesInRangeIMP);
+    
+    
     Method fixAttributesInRange = class_getInstanceMethod(DVTTextStorage, @selector(fixAttributesInRange:));
     OriginalFixAttributesInRangeIMP = method_getImplementation(fixAttributesInRange);
     IMP newFixAttributesInRangeIMP = class_getMethodImplementation([MCDVTTextStorage class], @selector(fixAttributesInRange:));
     method_setImplementation(fixAttributesInRange, newFixAttributesInRangeIMP);
+    
+    
+    
 }
 
 void hookIDEConsoleAdaptor()
@@ -919,8 +969,8 @@ NSRegularExpression * logItemPrefixPattern()
     if (pattern == nil) {
         NSError *error = nil;
         pattern = [NSRegularExpression regularExpressionWithPattern:@"\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}[\\.:]\\d{3}\\s+.+\\[[\\da-fA-F]+:[\\da-fA-F]+\\]\\s+"
-            options:NSRegularExpressionCaseInsensitive
-              error:&error];
+                                                            options:NSRegularExpressionCaseInsensitive
+                                                              error:&error];
         if (!pattern) {
             MCLogger(@"%@", error);
         }
@@ -945,21 +995,21 @@ NSSearchField *getSearchField(id consoleArea)
 {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wundeclared-selector"
-	if (![consoleArea respondsToSelector:@selector(scopeBarView)]) {
-		return nil;
-	}
-	
-	NSView *scopeBarView = [consoleArea performSelector:@selector(scopeBarView) withObject:nil];
-	return [scopeBarView viewWithTag:kTagSearchField];
+    if (![consoleArea respondsToSelector:@selector(scopeBarView)]) {
+        return nil;
+    }
+    
+    NSView *scopeBarView = [consoleArea performSelector:@selector(scopeBarView) withObject:nil];
+    return [scopeBarView viewWithTag:kTagSearchField];
 #pragma clang diagnositc pop
 }
 
 NSString *hash(id obj)
 {
-	if (!obj) {
-		return nil;
-	}
-	
+    if (!obj) {
+        return nil;
+    }
+    
     return [NSString stringWithFormat:@"%lx", (long)obj];
 }
 
